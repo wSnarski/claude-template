@@ -18,8 +18,13 @@ COPY . .
 # Build TypeScript
 RUN npm run build
 
-# Remove dev dependencies and source files to reduce image size
-RUN rm -rf src tsconfig.json .eslintrc.json .prettierrc node_modules && \
+# Remove dev dependencies and most source files, but keep config needed for migrations
+RUN rm -rf tsconfig.json .eslintrc.json .prettierrc node_modules && \
+    mkdir -p /app/config && \
+    cp src/config/sequelize-config.cjs /app/config/ && \
+    cp -r src/migrations /app/ && \
+    cp -r src/seeders /app/ && \
+    rm -rf src && \
     npm ci --only=production
 
 # Expose port
