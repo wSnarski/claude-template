@@ -2,8 +2,14 @@
 
 This is a production-ready backend HTTP service template designed for use with Claude. It provides a complete foundation for building Express.js applications with TypeScript, PostgreSQL, Docker, and comprehensive testing.
 
+**🌐 Live Demo:** https://claude-template-api.onrender.com
+- **Health Check**: https://claude-template-api.onrender.com/health
+- **API Docs**: https://claude-template-api.onrender.com/api-docs
+- **Try it**: `curl https://claude-template-api.onrender.com/todo/list`
+
 ## 🚀 Quick Start
 
+### Local Development
 **Prerequisites:** Docker and Docker Compose
 
 ```bash
@@ -21,11 +27,26 @@ curl http://localhost:3000/health
 curl http://localhost:3000/todo/list
 ```
 
-**Access Points:**
+**Local Access Points:**
 - **API Server**: http://localhost:3000
 - **Swagger Docs**: http://localhost:3000/api-docs
 - **pgAdmin**: http://localhost:5050 (admin@example.com / admin123)
 - **Database**: PostgreSQL on port 5432
+
+### Production Deployment (Render)
+This template includes complete Render.com deployment configuration:
+
+```bash
+# 1. Push to GitHub
+git push origin main
+
+# 2. Connect to Render.com
+# - Create new Blueprint from your repo
+# - Render auto-detects render.yaml configuration
+# - Creates PostgreSQL database + web service
+
+# 3. Your API goes live automatically!
+```
 
 ## Architecture Overview
 
@@ -168,6 +189,7 @@ router.post('/todo/create', async (req, res, next) => {
 
 The template includes a complete Todo domain with these working endpoints:
 
+### Local Development
 ```bash
 # Health Check
 curl http://localhost:3000/health
@@ -192,6 +214,39 @@ curl -X POST http://localhost:3000/todo/remove \
   -d '{"id": 1}'
 ```
 
+### Live Production API
+```bash
+# Health Check
+curl https://claude-template-api.onrender.com/health
+
+# List todos
+curl https://claude-template-api.onrender.com/todo/list
+
+# Create todo
+curl -X POST https://claude-template-api.onrender.com/todo/create \
+  -H "Content-Type: application/json" \
+  -d '{"title": "Live todo", "priority": "high"}'
+
+# Complete todo (replace ID with actual ID from create response)
+curl -X POST https://claude-template-api.onrender.com/todo/complete \
+  -H "Content-Type: application/json" \
+  -d '{"id": 1}'
+```
+
+## Deployment Files
+
+This template includes complete deployment configuration:
+
+**Render.com Deployment:**
+- `render.yaml` - Defines web service + PostgreSQL database
+- `Dockerfile.render` - Production-optimized Docker build
+- `.renderignore` - Excludes unnecessary files from deployment
+
+**Development:**
+- `docker-compose.dev.yml` - Local development with hot reloading
+- `Dockerfile.dev` - Development Docker image
+- `.sequelizerc` - Environment-aware Sequelize configuration
+
 ## Common Issues & Solutions
 
 **Sequelize Model Fields:**
@@ -203,13 +258,38 @@ curl -X POST http://localhost:3000/todo/remove \
 - Hot reloading works automatically with volume mounts
 - Use `npm run docker:build` after package.json changes
 
+**Render Deployment:**
+- `sequelize-cli` must be in production dependencies for migrations
+- Config files need to be preserved after build for Sequelize CLI
+- Auto-deploys on GitHub push to main branch
+
+## Template Achievements
+
+✅ **Complete Backend Service Template:**
+- Express.js + TypeScript with strict mode
+- PostgreSQL database with Sequelize ORM
+- Action-based API design (not RESTful)
+- Comprehensive Jest testing with co-located tests
+- Swagger/OpenAPI documentation
+- Docker development environment
+- Production deployment to Render.com
+
+✅ **Live Production Example:**
+- **API**: https://claude-template-api.onrender.com
+- **Docs**: https://claude-template-api.onrender.com/api-docs
+- Auto-deploys from GitHub pushes
+- Managed PostgreSQL database
+- Health monitoring and logging
+
 ## Important Notes for Claude
 
 - **Docker-first development**: Always use Docker commands for consistency
-- Always check existing patterns before adding new code
-- Maintain action-based endpoint naming (e.g., `/todo/create`, not `POST /todos`)
-- Keep business logic in interactors only
-- Write tests for all new interactors
-- Use the serializer pattern for all API responses
-- Follow TypeScript strict mode requirements
-- Database migrations and seeds must use `.cjs` extension
+- **Action-based endpoints**: Use `/todo/create`, not `POST /todos`
+- **Interactors pattern**: Keep all business logic in interactors only
+- **Co-located tests**: Write tests next to source files
+- **Serializer pattern**: Use serializers for all API responses
+- **TypeScript strict**: Follow strict mode requirements
+- **Database files**: Migrations and seeds must use `.cjs` extension
+- **Production ready**: Template includes complete Render deployment config
+
+This template provides a **production-ready foundation** for any backend HTTP service project.
