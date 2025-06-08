@@ -20,8 +20,6 @@ services:
         value: true
       - key: LOG_LEVEL
         value: info
-    buildCommand: npm ci && npm run build
-    startCommand: npm run start:migrate
 
 databases:
   - name: claude-template-db

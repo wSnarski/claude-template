@@ -25,5 +25,5 @@ RUN rm -rf src tsconfig.json .eslintrc.json .prettierrc node_modules && \
 # Expose port
 EXPOSE 10000
 
-# Start command (migrations will be run by start:migrate script)
-CMD ["npm", "run", "start"]
+# Start command with migrations
+CMD ["npm", "run", "start:migrate"]
