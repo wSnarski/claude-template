@@ -1,0 +1,40 @@
+version: '3.8'
+
+services:
+  postgres-test:
+    image: postgres:15-alpine
+    container_name: claude-template-test-db
+    environment:
+      POSTGRES_DB: claude_template_test
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres123
+    ports:
+      - "5433:5432"
+    tmpfs:
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  test:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: claude-template-test
+    environment:
+      NODE_ENV: test
+      DATABASE_URL: postgresql://postgres:postgres123@postgres-test:5432/claude_template_test
+      JWT_SECRET: test-secret-key
+    depends_on:
+      postgres-test:
+        condition: service_healthy
+    volumes:
+      - ./src:/app/src
+      - ./package.json:/app/package.json
+      - ./tsconfig.json:/app/tsconfig.json
+      - ./jest.config.js:/app/jest.config.js
+      - ./.sequelizerc:/app/.sequelizerc
+      - /app/node_modules
+    command: npm test

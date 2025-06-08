@@ -1,0 +1,29 @@
+services:
+  - type: web
+    name: claude-template-api
+    runtime: docker
+    dockerfilePath: ./Dockerfile.render
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: DATABASE_URL
+        fromDatabase:
+          name: claude-template-db
+          property: connectionString
+      - key: DATABASE_LOGGING
+        value: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: SWAGGER_ENABLED
+        value: true
+      - key: LOG_LEVEL
+        value: info
+    buildCommand: npm ci && npm run build
+    startCommand: npm run start:migrate
+
+databases:
+  - name: claude-template-db
+    databaseName: claude_template
+    user: claude_template_user
