@@ -1,0 +1,103 @@
+name: Test Production Health
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  health-check:
+    name: Check Render Service Health
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify production health endpoint
+        env:
+          HEALTH_URL: https://claude-template-api.onrender.com/health
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          HEALTH_URL=${HEALTH_URL:?}
+          MAX_ATTEMPTS=${MAX_ATTEMPTS:-12}
+          SLEEP_SECONDS=${SLEEP_SECONDS:-10}
+
+          echo "Checking service health at $HEALTH_URL"
+          echo "Will retry up to $MAX_ATTEMPTS times with $SLEEP_SECONDS seconds between attempts."
+
+          attempt=1
+          while [ "$attempt" -le "$MAX_ATTEMPTS" ]; do
+            echo "Attempt $attempt/$MAX_ATTEMPTS..."
+
+            response_file=$(mktemp)
+            status_file=$(mktemp)
+
+            set +e
+            curl --silent --show-error --location \
+              --max-time 20 \
+              --connect-timeout 10 \
+              --output "$response_file" \
+              --write-out "%{http_code}" \
+              "$HEALTH_URL" >"$status_file"
+            curl_exit=$?
+            set -e
+
+            http_code=$(cat "$status_file" 2>/dev/null || echo "000")
+            rm -f "$status_file"
+
+            if [[ -s "$response_file" ]]; then
+              echo "Response body:"
+              sed 's/^/  /' "$response_file"
+            else
+              echo "Response body is empty."
+            fi
+
+            echo "HTTP status: $http_code"
+            if [[ "$curl_exit" -ne 0 ]]; then
+              echo "curl exited with code $curl_exit"
+            fi
+
+            if [[ "$curl_exit" -eq 0 && "$http_code" == "200" ]]; then
+              if python "$response_file" <<'PY'
+import json
+import pathlib
+import sys
+
+path = pathlib.Path(sys.argv[1])
+raw = path.read_text(encoding="utf-8").strip()
+if not raw:
+    raise SystemExit("Empty response body.")
+try:
+    payload = json.loads(raw)
+except json.JSONDecodeError as exc:
+    raise SystemExit(f"Failed to parse JSON health response: {exc}")
+
+status = payload.get("status")
+if status != "healthy":
+    raise SystemExit(f"Unexpected health status: {status!r}")
+
+print("Health check passed with status 'healthy'.")
+PY
+              then
+                rm -f "$response_file"
+                echo "Health check succeeded."
+                exit 0
+              else
+                validation_status=$?
+                echo "Validation failed (exit code $validation_status)."
+              fi
+            fi
+
+            rm -f "$response_file"
+
+            if [[ "$attempt" -lt "$MAX_ATTEMPTS" ]]; then
+              echo "Waiting $SLEEP_SECONDS seconds before retrying..."
+              sleep "$SLEEP_SECONDS"
+            fi
+
+            attempt=$((attempt + 1))
+          done
+
+          echo "::error::Health check failed after ${MAX_ATTEMPTS} attempts."
+          exit 1
