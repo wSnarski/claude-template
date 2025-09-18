@@ -1,0 +1,42 @@
+name: Test Production Health
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  health-check:
+    name: Check Render Service Health
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify production health endpoint
+        env:
+          HEALTH_URL: https://claude-template-api.onrender.com/health
+        run: |
+          set -euo pipefail
+          echo "Checking service health at $HEALTH_URL"
+          response=$(curl --fail --silent --show-error --max-time 15 "$HEALTH_URL")
+          echo "Response: $response"
+          export RESPONSE="$response"
+          python - <<'PY'
+import json
+import os
+
+response = os.environ["RESPONSE"]
+
+try:
+    payload = json.loads(response)
+except json.JSONDecodeError as exc:
+    raise SystemExit(f"Failed to parse JSON health response: {exc}")
+
+status = payload.get("status")
+
+if status != "healthy":
+    raise SystemExit(f"Unexpected health status: {status!r}")
+
+print("Health check passed with status 'healthy'.")
+PY
+
